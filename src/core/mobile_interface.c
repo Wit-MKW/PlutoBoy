@@ -35,14 +35,14 @@ static struct s_mobile_user mobile_user;
 static socklen_t MobileAddrConvert1(const struct mobile_addr *src, union u_sockaddr *dest) {
 #ifdef IPV6_OK
     if (src->type == MOBILE_ADDRTYPE_IPV6) {
-        const struct mobile_addr6 *a6 = src;
+        const struct mobile_addr6 *a6 = (const struct mobile_addr6*)src;
         dest->sin6.sin6_family = AF_INET6;
         dest->sin6.sin6_port = htons(a6->port);
         memcpy(&dest->sin6.sin6_addr.s6_addr, a6->host, MOBILE_HOSTLEN_IPV6);
         return MAX(sizeof(dest->sin6), sizeof(dest->sa));
     }
 #endif
-    const struct mobile_addr4 *a4 = src;
+    const struct mobile_addr4 *a4 = (const struct mobile_addr4*)src;
     dest->sin.sin_family = AF_INET;
     dest->sin.sin_port = htons(a4->port);
     memcpy(&dest->sin.sin_addr.s_addr, a4->host, MOBILE_HOSTLEN_IPV4);
@@ -56,14 +56,14 @@ static socklen_t MobileAddrConvert1(const struct mobile_addr *src, union u_socka
 static void MobileAddrConvert2(const union u_sockaddr *src, struct mobile_addr *dest) {
 #ifdef IPV6_OK
     if (src->sa.sa_family == AF_INET6) {
-        struct mobile_addr6 *a6 = dest;
+        struct mobile_addr6 *a6 = (struct mobile_addr6*)dest;
         a6->type = MOBILE_ADDRTYPE_IPV6;
         a6->port = ntohs(src->sin6.sin6_port);
         memcpy(a6->host, &src->sin6.sin6_addr.s6_addr, MOBILE_HOSTLEN_IPV6);
     } else
 #endif
     {
-        struct mobile_addr4 *a4 = dest;
+        struct mobile_addr4 *a4 =  (struct mobile_addr4*)dest;
         a4->type = MOBILE_ADDRTYPE_IPV4;
         a4->port = ntohs(src->sin.sin_port);
         memcpy(a4->host, &src->sin.sin_addr.s_addr, MOBILE_HOSTLEN_IPV4);
@@ -110,15 +110,11 @@ static bool MobileSockOpen(void *user, unsigned conn, enum mobile_socktype type,
     enum mobile_addrtype addrtype, unsigned bindport) {
     struct s_mobile_user *m_user = user;
 
-    int fd = socket((addrtype == MOBILE_ADDRTYPE_IPV6) ? AF_INET6 : AF_INET,
-        (type == MOBILE_SOCKTYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM,
-        (type == MOBILE_SOCKTYPE_UDP) ? IPPROTO_UDP : IPPROTO_TCP);
-    if (fd == -1) {
-#ifndef _WIN32
-        log_message(LOG_INFO, "socket %d: %s\n", errno, strerror(errno));
-#endif
+    int fd = socket(addrtype == MOBILE_ADDRTYPE_IPV6 ? AF_INET6 : AF_INET,
+        type == MOBILE_SOCKTYPE_UDP ? SOCK_DGRAM : SOCK_STREAM,
+        type == MOBILE_SOCKTYPE_UDP ? IPPROTO_UDP : IPPROTO_TCP);
+    if (fd == -1)
         return false;
-    }
 
 #ifdef _WIN32
     u_long nblk = 1;
@@ -157,9 +153,6 @@ static bool MobileSockOpen(void *user, unsigned conn, enum mobile_socktype type,
         }
 
         if (bind(fd, &u_addr.sa, addrlen) == -1) {
-#ifndef _WIN32
-            log_message(LOG_INFO, "bind %d: %s\n", errno, strerror(errno));
-#endif
             close(fd);
             return false;
         }
@@ -225,7 +218,10 @@ static int MobileSockSend(void *user, unsigned conn, const void *data,
     union u_sockaddr u_addr;
     memset(&u_addr, 0, sizeof(u_addr));
     socklen_t addrlen = MobileAddrConvert1(addr, &u_addr);
-    return (int)sendto(m_user->sockets[conn].fd, data, size, 0, &u_addr.sa, addrlen);
+
+    ssize_t res = sendto(m_user->sockets[conn].fd, data, size, 0, &u_addr.sa, addrlen);
+    if (res == -1 && SOCKET_ERR(EWOULDBLOCK)) return 0;
+    return (int)res;
 }
 
 static int MobileSockRecv(void *user, unsigned conn, void *data,
