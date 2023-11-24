@@ -1,3 +1,7 @@
 [submodule "src/core/tests/minunit"]
 	path = src/core/tests/minunit
 	url = https://github.com/RossMeikleham/minunit
+
+[submodule "src/non_core/libmobile"]
+	path = src/non_core/libmobile
+	url = https://github.com/REONTeam/libmobile
