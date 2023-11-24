@@ -2,11 +2,13 @@
 #include <string.h>
 
 #include "../../non_core/serial_io_transfer.h"
+#include "../../non_core/mobile.h"
 #include "../../non_core/logger.h"
 
 #ifdef THREE_DS
 #include "SDL/SDL.h"
 //#include "SDL/SDL_net.h"
+uint32_t *SOCUBuffer = NULL;
 #else
 #include "SDL.h"
 #endif
@@ -127,10 +129,16 @@ int transfer(uint8_t data, uint8_t *recv, int ext) {
         }
 
         return 0;
-    } else {return 1;} // No networking enabled
+    } // else {return 1;} // No networking enabled
     
 #endif    
-    return 0;
+    static uint8_t next_byte = MOBILE_SERIAL_IDLE_BYTE;
+    if (!ext) {
+        *recv = next_byte;
+        next_byte = MobileTransfer(data);
+        return 0;
+    }
+    return 1;
 }
 
 
@@ -161,14 +169,14 @@ int transfer_ext(uint8_t data, uint8_t *recv) {
 // returns 0xFF if no external GB found
 uint8_t transfer_int(uint8_t data) {
 
-#if !defined(PSP) && !defined(EMSCRIPTEN) && !defined(DREAMCAST) && !defined(THREE_DS)
+// #if !defined(PSP) && !defined(EMSCRIPTEN) && !defined(DREAMCAST) && !defined(THREE_DS)
     uint8_t res;
     if (transfer(data, &res, 0)) {
         return 0xFF;
     } else {
         return res;
     }
-#endif
-    return 0xFF;
+// #endif
+//     return 0xFF;
 }
 

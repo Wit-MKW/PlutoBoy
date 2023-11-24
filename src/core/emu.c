@@ -15,6 +15,7 @@
 #include "../non_core/files.h"
 #include "../non_core/logger.h"
 #include "../non_core/debugger.h"
+#include "../non_core/mobile.h"
 
 #ifdef EFIAPI
 #include "../platforms/UEFI/libs.h"
@@ -211,9 +212,11 @@ void run() {
     log_message(LOG_INFO, "About to setup debug\n");
     setup_debug();
     log_message(LOG_INFO, "About to run\n");
+    MobileInit();
     while(!quit) {
         run_one_frame();
     }
+    MobileDeinit();
 }
 
 void finalize_emu() {

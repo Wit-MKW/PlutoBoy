@@ -7,6 +7,7 @@
 #include "../../core/serial_io.h"
 #include "../../core/mmu/mbc.h"
 #include "../../non_core/logger.h"
+#include "../../non_core/mobile.h"
 #include "debug_info.h"
 
 #include "3DES/3des.h"
@@ -69,11 +70,13 @@ int main(int argc, char **argv) {
     }
     
     log_message(LOG_INFO, "Running emu\n");
+    MobileInit();
 
     while (aptMainLoop()) {
         run_one_frame();
     }
 
+    MobileDeinit();
     write_SRAM();
     cleanup();
 	return 0;

@@ -19,9 +19,9 @@ void show_battery() {
 		if (battery_percent > 50) { // GREEN
     		color = "\x1b[32m";
 		} else if (battery_percent > 15) { // YELLOW
-			color = "[\x1b[33m";
+			color = "\x1b[33m";
 		} else { // RED
-			color = "[\x1b[31m"; 
+			color = "\x1b[31m"; 
 		}
 		
 		printf("Battery:%s%d%%%s\n", color, battery_percent, old_color);

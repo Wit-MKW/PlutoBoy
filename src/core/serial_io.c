@@ -6,6 +6,7 @@
 #include "timers.h"
 #include "serial_io.h"
 #include "../non_core/serial_io_transfer.h"
+#include "../non_core/mobile.h"
 
 static int transfer_in_progress = 0;
 static int internal_clock = 0;
@@ -41,6 +42,8 @@ void start_transfer(uint8_t *ctl, uint8_t *data) {
  * used to ensure when using internal clock,
  * data is transfered at the correct clock speed */
 void inc_serial_cycles(unsigned cycles) {
+    MobileLoop(cycles);
+    
     if (transfer_in_progress && internal_clock) {
         cur_cycles += cycles;
         if (cur_cycles >=  (GB_CLOCK_SPEED_HZ / gb_io_freq)) {
