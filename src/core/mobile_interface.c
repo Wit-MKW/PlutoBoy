@@ -272,6 +272,7 @@ static void MobileUpdateNumber(void *user, enum mobile_number type, const char *
 }
 
 void MobileInit(void) {
+    if (mobile_user.adapter) return;
     SocketInit();
     memset(&mobile_user, 0, sizeof(mobile_user));
     for (int i = 0; i < MOBILE_MAX_CONNECTIONS; ++i) {
@@ -299,6 +300,7 @@ void MobileInit(void) {
 }
 
 void MobileDeinit(void) {
+    if (!mobile_user.adapter) return;
     mobile_stop(mobile_user.adapter);
     save_SRAM(MOBILE_CONFIG_PATH, mobile_user.config, MOBILE_CONFIG_SIZE);
     memset(&mobile_user, 0, sizeof(mobile_user));
@@ -311,7 +313,7 @@ void MobileDeinit(void) {
 
 void MobileLoop(unsigned cycles) {
     mobile_user.frame_counter += cycles;
-    if (mobile_user.adapter)
+    if ((!cycles || cycles >= 4096 || (mobile_user.frame_counter & 4095) < cycles) && mobile_user.adapter)
         mobile_loop(mobile_user.adapter);
 }
 

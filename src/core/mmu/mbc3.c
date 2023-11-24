@@ -73,7 +73,7 @@ uint8_t read_MBC3(uint16_t addr) {
         
      case 0xA000:
      case 0xB000: // Read from RAM bank (if RAM banking enabled)
-                if (ram_enabled && cur_RAM_bank <= 0x3) {
+                if (ram_enabled && cur_RAM_bank < RAM_bank_count) {
                    return RAM_banks[(cur_RAM_bank * RAM_BANK_SIZE) | (addr - 0xA000)];
                 
 				// Read from RTC register
@@ -112,7 +112,7 @@ void write_MBC3(uint16_t addr, uint8_t val) {
                     break;
         case 0x4000: 
         case 0x5000: // Set current RAM/RTC mode and banks
-                    cur_RAM_bank =  val & (RAM_bank_count - 1);
+                    cur_RAM_bank =  val & 15;
                     break;
         case 0x6000: 
         case 0x7000: //Latch to RTC reg if 0x0 followed by 0x1 written
@@ -125,7 +125,7 @@ void write_MBC3(uint16_t addr, uint8_t val) {
                      break;
         case 0xA000:
         case 0xB000: // Write to external RAM bank if RAM banking enabled 
-                    if (ram_enabled && cur_RAM_bank <= 0x3) {
+                    if (ram_enabled && cur_RAM_bank < RAM_bank_count && RAM_banks[(cur_RAM_bank * RAM_BANK_SIZE) | (addr - 0xA000)] != val) {
                         RAM_banks[(cur_RAM_bank * RAM_BANK_SIZE) | (addr - 0xA000)] = val;                       
                         sram_modified = 1;
                     // Write to RTC

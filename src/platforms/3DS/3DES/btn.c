@@ -17,12 +17,12 @@ void btn_up(void) {
       }
     }
 
-    else if (scroll > 0) {
-      scroll--;
+    else if (selected > 0) {
+      selected--;
     }
 
     else {
-      selected--;
+      scroll--;
     }
   }
 }
@@ -46,19 +46,22 @@ void btn_down(void) {
 
 void btn_left(void) {
   if (size_of_file_array != 0) {
-    selected = 0;
-    scroll = 0;
+    if (scroll >= MAX_FILES_ON_SCREEN) {
+      scroll -= MAX_FILES_ON_SCREEN;
+    }
+    else {
+      scroll = 0;
+    }
   }
 }
 
 void btn_right(void) {
   if (size_of_file_array != 0) {
-    if (size_of_file_array > MAX_FILES_ON_SCREEN) {
-      selected = MAX_FILES_ON_SCREEN-1;
-      scroll = size_of_file_array-MAX_FILES_ON_SCREEN;
+    if (scroll < size_of_file_array - 2 * MAX_FILES_ON_SCREEN) {
+      scroll += MAX_FILES_ON_SCREEN;
     }
     else {
-      selected = size_of_file_array-1;
+      scroll = size_of_file_array - MAX_FILES_ON_SCREEN;
     }
   }
 }
