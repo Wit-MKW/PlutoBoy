@@ -93,10 +93,10 @@ void write_flash(uint32_t addr, uint8_t val) {
 
 void setup_MBC6(int flags) {
     battery = (flags & BATTERY) ? 1 : 0;
-    if (battery) {
-        read_SRAM();
-    }
     flash_banks = RAM_banks + RAM_bank_count * RAM_BANK_SIZE - 0x100000;
+    if (battery && !read_SRAM()) {
+        memset(flash_banks, 0xFF, 0x100000);
+    }
 }
 
 uint8_t read_MBC6(uint16_t addr) {
@@ -116,6 +116,8 @@ uint8_t read_MBC6(uint16_t addr) {
                         return 0x80;
                     } else if (flash_state == 0xA0) {
                         return 0x00;
+                    } else if ((flash_enabled & 0x4) && cur_ROM_bankA == 0x80 && addr <= 0x4001) {
+                        return (addr == 0x4000 ? 0xC2 : 0x81);
                     } else {
                         return flash_banks[(cur_ROM_bankA & 0x7F) << 13 | (addr & 0x1FFF)];
                     }
@@ -130,6 +132,8 @@ uint8_t read_MBC6(uint16_t addr) {
                         return 0x80;
                     } else if (flash_state == 0xA0) {
                         return 0x00;
+                    } else if ((flash_enabled & 0x4) && cur_ROM_bankB == 0x80 && addr <= 0x6001) {
+                        return (addr == 0x6000 ? 0xC2 : 0x81);
                     } else {
                         return flash_banks[(cur_ROM_bankB & 0x7F) << 13 | (addr & 0x1FFF)];
                     }

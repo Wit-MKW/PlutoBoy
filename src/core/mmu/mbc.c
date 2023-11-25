@@ -42,14 +42,8 @@ void write_SRAM() {
 }
 
 
-void read_SRAM() {
-
-    size_t len;
-    if((len = load_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000))) {
-        if (len !=( RAM_bank_count * 0x2000)) { // Not enough read in
-            memset(RAM_banks, 0, len); //"Erase" what just got read into memory
-        }
-    }
+int read_SRAM() {
+    return (load_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000) == RAM_bank_count * 0x2000);
 }
 
 

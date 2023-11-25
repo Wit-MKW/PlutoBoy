@@ -41,7 +41,7 @@ void teardown_MBC();
 /* Writes/Reads ROM SRAM from file, used for
  * save games */
 void write_SRAM();
-void read_SRAM();
+int read_SRAM();
 
 
 //Increments the RTC clock in MBC3
