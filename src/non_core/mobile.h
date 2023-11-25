@@ -7,9 +7,12 @@
 #include "framerate.h"
 #include "libmobile/mobile.h"
 
-void MobileInit(void);
+int MobileInit(void);
 void MobileDeinit(void);
 void MobileLoop(unsigned);
 uint8_t MobileTransfer(uint8_t);
+
+int MobileConf(enum mobile_adapter_device*, bool*, struct mobile_addr*, struct mobile_addr*,
+	struct mobile_addr*, unsigned*, unsigned char*, bool*);
 
 #endif

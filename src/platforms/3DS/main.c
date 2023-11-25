@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     int debug = 0;
     int cgb_mode = 0;
     char file_name[1024];
-    if (!selectFile(&cgb_mode, file_name)) {
+    if (!selectFile(&cgb_mode, file_name) || !MobileInit()) {
         cleanup();
         return 0;
     };
@@ -70,7 +70,6 @@ int main(int argc, char **argv) {
     }
     
     log_message(LOG_INFO, "Running emu\n");
-    MobileInit();
 
     while (aptMainLoop()) {
         run_one_frame();

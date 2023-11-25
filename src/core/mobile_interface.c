@@ -267,8 +267,8 @@ static void MobileUpdateNumber(void *user, enum mobile_number type, const char *
     if (number) strncpy(m_user->numbers[type], number, MOBILE_MAX_NUMBER_SIZE);
 }
 
-void MobileInit(void) {
-    if (mobile_user.adapter) return;
+int MobileInit(void) {
+    if (mobile_user.adapter) return 1;
     SocketInit();
     memset(&mobile_user, 0, sizeof(mobile_user));
     for (int i = 0; i < MOBILE_MAX_CONNECTIONS; ++i) {
@@ -276,6 +276,7 @@ void MobileInit(void) {
         mobile_user.sockets[i].type = (enum mobile_socktype)(-1);
     }
     load_SRAM(MOBILE_CONFIG_PATH, mobile_user.config, MOBILE_CONFIG_SIZE);
+
     mobile_user.adapter = mobile_new(&mobile_user);
     mobile_def_debug_log(mobile_user.adapter, MobileDebugLog);
     mobile_def_serial_disable(mobile_user.adapter, MobileSerialDisable);
@@ -292,7 +293,34 @@ void MobileInit(void) {
     mobile_def_sock_send(mobile_user.adapter, MobileSockSend);
     mobile_def_sock_recv(mobile_user.adapter, MobileSockRecv);
     mobile_def_update_number(mobile_user.adapter, MobileUpdateNumber);
+
+    enum mobile_adapter_device device;
+    bool unmetered;
+    struct mobile_addr dns1;
+    struct mobile_addr dns2;
+    struct mobile_addr relay;
+    unsigned p2p_port;
+    unsigned char token[MOBILE_RELAY_TOKEN_SIZE];
+    bool token_set;
+
+    mobile_config_load(mobile_user.adapter);
+    mobile_config_get_device(mobile_user.adapter, &device, &unmetered);
+    mobile_config_get_dns(mobile_user.adapter, &dns1, MOBILE_DNS1);
+    mobile_config_get_dns(mobile_user.adapter, &dns2, MOBILE_DNS2);
+    mobile_config_get_p2p_port(mobile_user.adapter, &p2p_port);
+    mobile_config_get_relay(mobile_user.adapter, &relay);
+    token_set = mobile_config_get_relay_token(mobile_user.adapter, token);
+
+    if (!MobileConf(&device, &unmetered, &dns1, &dns2, &relay, &p2p_port, token, &token_set))
+        return 0;
+    mobile_config_set_device(mobile_user.adapter, device, unmetered);
+    mobile_config_set_dns(mobile_user.adapter, &dns1, MOBILE_DNS1);
+    mobile_config_set_dns(mobile_user.adapter, &dns2, MOBILE_DNS2);
+    mobile_config_set_p2p_port(mobile_user.adapter, p2p_port);
+    mobile_config_set_relay(mobile_user.adapter, &relay);
+    mobile_config_set_relay_token(mobile_user.adapter, token_set ? token : NULL);
     mobile_start(mobile_user.adapter);
+    return 1;
 }
 
 void MobileDeinit(void) {

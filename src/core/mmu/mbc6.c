@@ -163,14 +163,14 @@ void write_MBC6(uint16_t addr, uint8_t val) {
                     ram_enabled = (val == 0xA);
                     break;
         case 0x0400: // Set current RAM bank (A)
-                    cur_RAM_bankA = (val & 0x7);
+                    cur_RAM_bankA = val & (RAM_bank_count * 2 - 0x101);
                     break;
         case 0x0800: // Set current RAM bank (B)
-                    cur_RAM_bankB = (val & 0x7);
+                    cur_RAM_bankB = val & (RAM_bank_count * 2 - 0x101);
                     break;
         case 0x0C00: // Enable/Disable flash
                     if (flash_enabled & 0x2) {
-                        flash_enabled = (val & 0x1) | 0x2;
+                        flash_enabled = (val & 0x1) | (flash_enabled & 0x6);
                     }
                     break;
         case 0x1000: // Enable/Disable flash writing
