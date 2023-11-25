@@ -4,6 +4,7 @@
 #include "mbc2.h"
 #include "mbc3.h"
 #include "mbc5.h"
+#include "mbc6.h"
 #include "mmm01.h"
 #include "huc1.h"
 #include "huc3.h"
@@ -105,7 +106,7 @@ void teardown_MBC() {
 int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *filename) {
 
     create_SRAM_filename(filename);
-    RAM_bank_count = ram_banks;
+    RAM_bank_count = ram_banks + (MBC_no == 0x20 ? 0x80 : 0x0);
 
 	RAM_banks = NULL;
 	if (RAM_bank_count > 0) {
@@ -198,6 +199,14 @@ int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *fi
         setup_MBC5(flags);
         read_MBC = &read_MBC5;
         write_MBC = &write_MBC5;
+   }
+
+   // MBC6
+   else if (MBC_no == 0x20) {
+       flags = SRAM | BATTERY;
+       setup_MBC6(flags);
+       read_MBC = &read_MBC6;
+       write_MBC = &write_MBC6;
    }
   
    // HUC3

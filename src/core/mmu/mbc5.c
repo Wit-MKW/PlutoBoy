@@ -85,7 +85,7 @@ void write_MBC5(uint16_t addr, uint8_t val) {
                      break;
         case 0xA000:
         case 0xB000: // Write to external RAM bank if RAM banking enabled 
-                    if (ram_banking) {
+                    if (ram_banking && RAM_banks[(cur_RAM_bank * RAM_BANK_SIZE) | (addr - 0xA000)] != val) {
                         RAM_banks[(cur_RAM_bank * RAM_BANK_SIZE) | (addr - 0xA000)] = val; 
                         sram_modified = 1;
                     }
