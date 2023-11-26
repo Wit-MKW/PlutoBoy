@@ -25,29 +25,52 @@ static uint8_t *flash_banks;
 
 void write_flash(uint32_t addr, uint8_t val) {
     static uint8_t data[0x80];
-    static uint32_t prog_addr;
+    static uint32_t prog_addr = -1;
     static int last_written = 0;
 
     if (!(flash_enabled & 0x1) || addr >= 0x100000) return;
 
+    if (flash_state == 0xF0) {
+        last_written = 0;
+        if (addr == prog_addr + 0x7F && val == 0xF0)
+            flash_state = 0;
+        return;
+    }
+
+    if (flash_state == 0xA0) {
+        if (prog_addr == -1) prog_addr = (addr & ~0x7F);
+        if (prog_addr == (addr & ~0x7F)) {
+            data[addr & 0x7F] = val;
+            if ((addr & 0x7F) == 0x7F) {
+                if (last_written && !val) {
+                    for (uint32_t i = 0; i < 0x80; ++i) {
+                        flash_banks[prog_addr + i] &= data[i];
+                    }
+                    flash_state = 0xF0;
+                    prog_addr = -1;
+                }
+                last_written = 1;
+            }
+        }
+        return;
+    }
+
     if (addr == 0x5555 && val == 0xAA) {
         flash_state = (flash_state == 0x80 ? -0xAA : 0xAA);
     } else if (addr == 0x2AAA && val == 0x55) {
-        flash_state = (flash_state == -0xAA ? -0x55 : flash_state == 0xAA ? 0x55 : 0);
+        flash_state = (flash_state == -0xAA ? -0x55 :
+            (flash_state == 0xAA ? 0x55 : 0));
     } else if (addr == 0x5555 && flash_state == 0x55) {
         switch (val) {
         case 0xA0:
-            memset(data, 0xFF, sizeof(data));
-            prog_addr = -1;
-            last_written = 0;
+            memset(data, 0xFF, sizeof(data) - 1);
         case 0x80: // fall-through
-            flash_state = (flash_enabled == 0x2 ? val : 0);
+            flash_state = (flash_enabled & 0x2) ? val : 0;
             break;
         case 0xF0:
-            if ((flash_enabled & 0x4) || (flash_erase & 0x1)) {
-                flash_enabled &= 0x3;
-                flash_erase &= 0x2;
-            }
+            flash_enabled &= 0x3;
+            flash_erase &= 0x2;
+            flash_state = 0;
             break;
         case 0x90:
             flash_enabled |= 0x4;
@@ -60,33 +83,12 @@ void write_flash(uint32_t addr, uint8_t val) {
         flash_erase |= 0x1;
         flash_state = 0;
     } else if ((addr & 0x1FFF) == 0) {
-        if (flash_state == 0xA0) {
-            if (prog_addr == -1) prog_addr = addr;
-            if (prog_addr == addr) data[0] = val;
-        } else {
-            if (val == 0x30 && flash_state == -0x55) {
-                memset(flash_banks + addr, 0xFF, 0x2000);
-                flash_erase |= 0x2;
-            } else if (val == 0xF0 && flash_state == 0x55) {
-                flash_erase &= 0x1;
-            }
-            if (flash_state != 0x10) flash_state = 0;
+        if (val == 0x30 && flash_state == -0x55) {
+            memset(flash_banks + addr, 0xFF, 0x2000);
+            flash_erase |= 0x2;
+        } else if (val == 0xF0 && flash_state == 0x55) {
+            flash_erase &= 0x1;
         }
-    } else if (flash_state == 0xA0) {
-        if (prog_addr == -1) prog_addr = (addr & ~0x7F);
-        if (prog_addr == (addr & ~0x7F)) {
-            data[addr & 0x7F] = val;
-            if ((addr & 0x7F) == 0x7F) {
-                if (last_written && !val) {
-                    for (uint32_t i = 0; i < 0x80; ++i) {
-                        flash_banks[prog_addr + i] &= data[i];
-                    }
-                    flash_state = 0xF0;
-                }
-                last_written = 1;
-            }
-        }
-    } else if (addr == prog_addr + 0x7F && val == 0xF0 && flash_state == 0xF0) {
         flash_state = 0;
     }
 }
