@@ -247,4 +247,5 @@ int MobileConf(enum mobile_adapter_device *device, bool *unmetered,
         gfxFlushBuffers();
         gfxSwapBuffers();
     }
+    return 0;
 }

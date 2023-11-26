@@ -173,10 +173,13 @@ void write_MBC6(uint16_t addr, uint8_t val) {
                         flash_enabled = (val & 0x1) | (flash_enabled & 0x6);
                     }
                     break;
-        case 0x1000: // Enable/Disable flash writing
-                    if (addr == 0x1000) {
+        case 0x1000:
+        case 0x1400:
+        case 0x1800:
+        case 0x1C00: // Enable/Disable flash writing
+                    // if (addr == 0x1000) {
                         flash_enabled = (val & 0x1) << 1 | (flash_enabled & 0x5);
-                    }
+                    // }
                     break;
         case 0x2000:
         case 0x2400: // Set current ROM bank (A)
@@ -184,7 +187,7 @@ void write_MBC6(uint16_t addr, uint8_t val) {
                     break;
         case 0x2800:
         case 0x2C00: // Switch ROM/flash (A)
-                    cur_ROM_bankA = (val & 0x1) << 7 | (cur_ROM_bankA & 0x7F);
+                    cur_ROM_bankA = (val == 0x8) << 7 | (cur_ROM_bankA & 0x7F);
                     break;
         case 0x3000:
         case 0x3400: // Set current ROM bank (B)
@@ -192,7 +195,7 @@ void write_MBC6(uint16_t addr, uint8_t val) {
                     break;
         case 0x3800:
         case 0x3C00: // Switch ROM/flash (B)
-                    cur_ROM_bankB = (val & 0x1) << 7 | (cur_ROM_bankB & 0x7F);
+                    cur_ROM_bankB = (val == 0x8) << 7 | (cur_ROM_bankB & 0x7F);
                     break;
         case 0x4000:
         case 0x4400:
