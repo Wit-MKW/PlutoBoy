@@ -57,31 +57,29 @@ void write_flash(uint32_t addr, uint8_t val) {
 
     if (addr == 0x5555 && val == 0xAA) {
         flash_state = (flash_state == 0x80 ? -0xAA : 0xAA);
+        return;
     } else if (addr == 0x2AAA && val == 0x55) {
         flash_state = (flash_state == -0xAA ? -0x55 :
             (flash_state == 0xAA ? 0x55 : 0));
+        return;
     } else if (addr == 0x5555 && flash_state == 0x55) {
         switch (val) {
         case 0xA0:
             memset(data, 0xFF, sizeof(data) - 1);
         case 0x80: // fall-through
             flash_state = (flash_enabled & 0x2) ? val : 0;
-            break;
+            return;
         case 0xF0:
             flash_enabled &= 0x3;
             flash_erase &= 0x2;
-            flash_state = 0;
             break;
         case 0x90:
             flash_enabled |= 0x4;
-        default: // fall-through
-            flash_state = 0;
             break;
         }
     } else if (addr == 0x5555 && val == 0x10 && flash_state == -0x55) {
         memset(flash_banks, 0xFF, 0x100000);
         flash_erase |= 0x1;
-        flash_state = 0;
     } else if ((addr & 0x1FFF) == 0) {
         if (val == 0x30 && flash_state == -0x55) {
             memset(flash_banks + addr, 0xFF, 0x2000);
@@ -89,8 +87,8 @@ void write_flash(uint32_t addr, uint8_t val) {
         } else if (val == 0xF0 && flash_state == 0x55) {
             flash_erase &= 0x1;
         }
-        flash_state = 0;
     }
+    flash_state = 0;
 }
 
 void setup_MBC6(int flags) {
