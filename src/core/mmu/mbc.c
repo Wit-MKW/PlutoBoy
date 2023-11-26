@@ -104,7 +104,7 @@ int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *fi
 
 	RAM_banks = NULL;
 	if (RAM_bank_count > 0) {
-    	RAM_banks = malloc(ram_banks * RAM_BANK_SIZE);
+    	RAM_banks = malloc(RAM_bank_count * RAM_BANK_SIZE);
     	if (RAM_banks == NULL) {
         	log_message(LOG_ERROR, "Unable to allocate memory for RAM banks\n");
         	return 0;
