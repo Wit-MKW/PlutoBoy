@@ -4,13 +4,13 @@
 #include "mbc2.h"
 #include "mbc3.h"
 #include "mbc5.h"
-#include "mbc6.h"
 #include "mmm01.h"
 #include "huc1.h"
 #include "huc3.h"
 
 #include "../../non_core/logger.h"
 #include "../../non_core/files.h"
+#include "../../non_core/get_time.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -37,13 +37,47 @@ unsigned RAM_bank_count = 0;
 unsigned ROM_bank_count = 0;
 static int mbc3_rtc = 0;
 
+// SRAM cache is where we store any writes to the SRAM, we only write to the SRAM file every SRAM_WRITE_DELAY milliseconds
+// used to improve 3DS performance and avoid taxing I/O writes
+static unsigned char *SRAM_cache; // max 16 * 8KB ram banks (128KB) 0x2000
+static uint64_t time_last_SRAM_write = 0;   // in ms
+static int SRAM_cache_valid = 0;    // 0 = false, 1 = true, is the cache safe to use for loading
+
 void write_SRAM() {
+
+    log_message(LOG_INFO, "write SRAM called\n");
+    // if sufficent time has passed since last file write, write to the .sav file
+    if(get_time() - time_last_SRAM_write > SRAM_WRITE_DELAY){
+        save_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000);
+    }
+    // always save to cache that way any load SRAM calls can use the cache
+    save_SRAM_cached(SRAM_cache, RAM_banks, RAM_bank_count * 0x2000);
+
+    time_last_SRAM_write = get_time();
+    SRAM_cache_valid = 1;   // since we always ensure the cache matches the file, it's always valid except on load up
+}
+
+
+void flush_SRAM() {
     save_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000);
 }
 
 
-int read_SRAM() {
-    return (load_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000) == RAM_bank_count * 0x2000);
+void read_SRAM() {
+
+    size_t len;
+    if(SRAM_cache_valid){  // depending on if the cache is loaded, use cache or the file
+        len = load_SRAM_cached(SRAM_cache, RAM_banks, RAM_bank_count * 0x2000);
+    }
+    else{
+        len = load_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000);
+    }
+
+    if(len) {
+        if (len !=( RAM_bank_count * 0x2000)) { // Not enough read in
+            memset(RAM_banks, 0, len); //"Erase" what just got read into memory
+        }
+    }
 }
 
 
@@ -95,18 +129,25 @@ static void create_SRAM_filename(const char *filename) {
 void teardown_MBC() {
    free(RAM_banks); 
    free(ROM_banks); 
+   free(SRAM_cache);
 }
 
 int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *filename) {
 
     create_SRAM_filename(filename);
-    RAM_bank_count = ram_banks + (MBC_no == 0x20 ? 0x80 : 0x0);
+    RAM_bank_count = ram_banks;
 
 	RAM_banks = NULL;
 	if (RAM_bank_count > 0) {
-    	RAM_banks = malloc(RAM_bank_count * RAM_BANK_SIZE);
+    	RAM_banks = malloc(ram_banks * RAM_BANK_SIZE);
     	if (RAM_banks == NULL) {
         	log_message(LOG_ERROR, "Unable to allocate memory for RAM banks\n");
+        	return 0;
+    	}
+
+        SRAM_cache = malloc(ram_banks * RAM_BANK_SIZE);
+    	if (SRAM_cache == NULL) {
+        	log_message(LOG_ERROR, "Unable to allocate memory for SRAM cache\n");
         	return 0;
     	}
 	}
@@ -116,6 +157,9 @@ int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *fi
         log_message(LOG_ERROR, "Unable to allocate memory for ROM banks\n");
         if (RAM_banks != NULL) {
 			free(RAM_banks);
+		}
+        if (SRAM_cache != NULL) {
+			free(SRAM_cache);
 		}
         return 0;
     }
@@ -193,14 +237,6 @@ int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *fi
         setup_MBC5(flags);
         read_MBC = &read_MBC5;
         write_MBC = &write_MBC5;
-   }
-
-   // MBC6
-   else if (MBC_no == 0x20) {
-       flags = SRAM | BATTERY;
-       setup_MBC6(flags);
-       read_MBC = &read_MBC6;
-       write_MBC = &write_MBC6;
    }
   
    // HUC3
