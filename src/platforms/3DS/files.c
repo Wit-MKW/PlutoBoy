@@ -2,6 +2,7 @@
 #include "../../non_core/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*  Given a file_path and buffer to store file data in, attempts to
  *  read the file into the buffer. Returns the size of the file if successful,
@@ -64,7 +65,6 @@ unsigned long load_SRAM(const char *file_path, unsigned char *data, unsigned lon
 
     return count;
 }
- 
 
 /* Given a file_path, save data and the size of save data, attempts to
  * save the data to the given file. Returns 1 if successful, 0 otherwise */
