@@ -4,6 +4,7 @@
 #include "mbc2.h"
 #include "mbc3.h"
 #include "mbc5.h"
+#include "mbc6.h"
 #include "mmm01.h"
 #include "huc1.h"
 #include "huc3.h"
@@ -66,6 +67,7 @@ void flush_SRAM() {
 void read_SRAM() {
 
     size_t len;
+    if((len = load_SRAM(SRAM_filename, RAM_banks, RAM_bank_count * 0x2000))) {
     if(SRAM_cache_valid){  // depending on if the cache is loaded, use cache or the file
         len = load_SRAM_cached(SRAM_cache, RAM_banks, RAM_bank_count * 0x2000);
     }
@@ -135,22 +137,22 @@ void teardown_MBC() {
 int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *filename) {
 
     create_SRAM_filename(filename);
-    RAM_bank_count = ram_banks;
+    RAM_bank_count = ram_banks + (MBC_no == 0x20 ? 0x80 : 0x0);
 
 	RAM_banks = NULL;
 	if (RAM_bank_count > 0) {
-    	RAM_banks = malloc(ram_banks * RAM_BANK_SIZE);
+    	RAM_banks = malloc(RAM_bank_count * RAM_BANK_SIZE);
     	if (RAM_banks == NULL) {
         	log_message(LOG_ERROR, "Unable to allocate memory for RAM banks\n");
         	return 0;
     	}
+	}
 
         SRAM_cache = malloc(ram_banks * RAM_BANK_SIZE);
     	if (SRAM_cache == NULL) {
         	log_message(LOG_ERROR, "Unable to allocate memory for SRAM cache\n");
         	return 0;
     	}
-	}
 
     ROM_banks = malloc(rom_banks * ROM_BANK_SIZE);
     if (ROM_banks == NULL) {
@@ -237,6 +239,14 @@ int setup_MBC(int MBC_no, unsigned ram_banks, unsigned rom_banks, const char *fi
         setup_MBC5(flags);
         read_MBC = &read_MBC5;
         write_MBC = &write_MBC5;
+   }
+
+   // MBC6
+   else if (MBC_no == 0x20) {
+       flags = SRAM | BATTERY;
+       setup_MBC6(flags);
+       read_MBC = &read_MBC6;
+       write_MBC = &write_MBC6;
    }
   
    // HUC3
